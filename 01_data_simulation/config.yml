@@ -1,0 +1,161 @@
+# Smart Factory Sensor Configuration
+# This file defines equipment types, their sensor ranges, and degradation parameters
+# YAML format makes it easy to adjust without coding
+
+# ===== EQUIPMENT DEFINITIONS =====
+# Each equipment type has sensors with normal operating ranges
+
+equipment_types:
+  Motor:
+    # Motor: Converts electrical energy to mechanical motion
+    # Key sensors: Temperature (bearing heat), Vibration (imbalance), Power (efficiency)
+    sensors:
+      temperature:
+        # Temperature sensor on bearing
+        min: 20.0              # Minimum safe reading (°C) 
+        max: 80.0              # Maximum safe reading (°C)
+        normal_mean: 45.0      # Average temperature during normal operation
+        normal_std: 5.0        # Standard deviation (variability ±1σ)
+      vibration:
+        # Vibration sensor (accelerometer) - detects imbalance, misalignment
+        min: 0.0
+        max: 10.0
+        normal_mean: 2.5       # Low vibration = healthy motor
+        normal_std: 0.5
+      power_consumption:
+        # Power consumption (kW)
+        min: 5.0
+        max: 15.0
+        normal_mean: 8.5
+        normal_std: 1.0
+
+  ConveyorBelt:
+    # ConveyorBelt: Moves product through factory
+    # Key sensors: Speed (RPM), Load (amps), Temperature (friction heat)
+    sensors:
+      temperature:
+        min: 20.0
+        max: 70.0
+        normal_mean: 40.0
+        normal_std: 4.0
+      vibration:
+        min: 0.0
+        max: 8.0
+        normal_mean: 2.0
+        normal_std: 0.4
+      power_consumption:
+        min: 3.0
+        max: 10.0
+        normal_mean: 6.0
+        normal_std: 0.8
+
+  Chiller:
+    # Chiller: Cools factory environment
+    # Key sensors: Coolant Temp, Compressor Vibration, Electricity Draw
+    sensors:
+      temperature:
+        min: 5.0
+        max: 45.0
+        normal_mean: 15.0
+        normal_std: 3.0
+      vibration:
+        min: 0.0
+        max: 6.0
+        normal_mean: 1.5
+        normal_std: 0.3
+      power_consumption:
+        min: 10.0
+        max: 30.0
+        normal_mean: 18.0
+        normal_std: 2.0
+
+# จำลองการเสื่อมสภาพของอุปกรณ์และผลกระทบต่อเซ็นเซอร์
+# Note: You can add more equipment types (e.g., Pump, Fan) by following the same structure0
+# ===== DEGRADATION MODEL =====
+# How equipment health decreases over time and how it affects sensors
+
+degradation:
+  # Initial state
+  health_score_start: 100.0     # All equipment starts at 100% health
+  
+  # Daily health loss (random per equipment)
+  daily_health_loss_min: 0.5    # Slow failure: -0.5% health/day → 200 days to fail
+  daily_health_loss_max: 2.0    # Fast failure: -2% health/day → 50 days to fail
+  
+  # Randomness in degradation rate
+  degradation_variance: 0.3     # Standard deviation of daily loss (makes it unpredictable)
+  
+  # Sensor behavior changes as health degrades
+  # Healthy (>70%): Small random noise
+  # Degrading (50-70%): Increasing spikes
+  # Critical (<30%): Constant anomalies, correlated across sensors
+  
+  correlation_strength: 0.7     # When vibration spikes, other sensors likely spike too (realistic!)
+  
+  # Health thresholds for alert severity
+  anomaly_reason_mapping:
+    health_70_to_50: "equipment_degrading"           # Yellow light
+    health_50_to_30: "poor_equipment_condition"      # Orange light
+    health_below_30: "critical_equipment_failure"    # Red light
+
+# จำลองว่าใช้กี่วันและความถี่ในการเก็บข้อมูลจากเซ็นเซอร์
+# ===== SIMULATION PARAMETERS =====
+# How long to simulate and at what frequency
+
+simulation:
+  # Duration and frequency
+  duration_days: 7              # Simulate 1 week of factory operation
+  interval_minutes: 1           # Reading every 60 seconds (realistic IoT frequency)
+  
+  # Count of each equipment (you can scale this up)
+  num_equipments:
+    Motor: 2                     # 2 motor units in the factory
+    ConveyorBelt: 2              # 2 conveyor belts
+    Chiller: 1                   # 1 chiller system
+  
+  # Reproducibility
+  random_seed: 42               # Set for deterministic results (same seed = same data)
+                                 # Change this number to get different scenarios
+  
+  # Output location
+  output_dir: "data"            # Where to save simulated_sensor_data.csv
+  output_filename: "simulated_sensor_data.csv"
+
+# จำลองการตรวจจับความผิดปกติจากเซ็นเซอร์โดยใช้กฎที่กำหนดไว้
+# ===== ANOMALY DETECTION RULES =====
+# When to flag a reading as anomalous
+
+anomalies:
+  # Static anomalies (out of normal range)
+  sensor_out_of_range: true     # Flag if reading exceeds sensor min/max
+  
+  # Dynamic anomalies (based on health)
+  health_based_spike: true      # Flag if reading deviates too far from normal (correlated with degradation)
+  
+  # Spike multiplier: reading is "anomalous" if it exceeds normal_mean ± (normal_std * multiplier)
+  spike_std_multiplier:
+    healthy: 3.0                # When healthy: Need 3σ deviation to flag (strict)
+    degrading: 2.0              # Degrading: 2σ deviation flags anomaly (moderate)
+    critical: 1.5               # Critical: 1.5σ deviation flags anomaly (sensitive)
+
+# ===== EXAMPLE: HOW TO USE THIS CONFIG =====
+# 
+# 1. Read this config in Python:
+#    import yaml
+#    with open('config.yml', 'r') as f:
+#        config = yaml.safe_load(f)
+#    
+# 2. Access equipment parameters:
+#    temp_range = config['equipment_types']['Motor']['sensors']['temperature']
+#    normal_mean = temp_range['normal_mean']  # 45.0
+#    
+# 3. Simulate 1 week:
+#    num_readings = (7 days × 24 hours × 60 minutes) / 1 minute = 10,080 readings per equipment
+#    Total: 10,080 × 5 equipment = 50,400 rows ✅
+#    
+# 4. Modify for different scenarios:
+#    - Change daily_health_loss_max to 5.0 for faster failures
+#    - Add more equipment types for larger simulations
+#    - Change interval_minutes to 5 for less frequent readings
+#
+# ===== END CONFIG =====
