@@ -1,0 +1,13 @@
+# Python dependencies for Phase 1: Data Simulation
+
+# YAML parsing - read config.yml
+pyyaml==6.0
+
+# Numerical computing - generate sensor readings with statistical models
+numpy==1.24.3
+
+# Data manipulation - organize and save sensor data to CSV
+pandas==2.0.3
+
+# Python 3.8+ required for type hints and modern syntax
+# Install with: pip install -r requirements.txt
