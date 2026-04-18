@@ -37,6 +37,7 @@ A complete, production-ready **end-to-end data pipeline** that simulates industr
 - **5 equipment units** generating multi-sensor readings
 - **7 days** of simulated operation
 - **3 sensor types** per equipment (temperature, vibration, power)
+- **7 batch files** generated automatically, one per simulated day
 - **Degradation model** showing equipment health decline over time
 
 ---
@@ -290,14 +291,17 @@ class SensorSimulator:
         # If degrading (50-70%): Start seeing spikes
         # If critical (<30%): Constant anomalies, correlated across sensors
 
-   def generate_batch_to_csv(self):
-      # Generate time-series data in batches and append to CSV
+   def generate_batch_files(self):
+      # Generate 7 batch CSV files automatically, one per day
+
+   def generate_merged_csv(self):
+      # Merge the batch files into one final CSV for downstream use
 ```
 
 **Key Features**:
 1. **Temporal Realism**: Each equipment degrades at its own random rate
 2. **Sensor Correlation**: When ONE sensor spikes, others tend to spike too (realistic degradation)
-3. **Batch Processing**: Data is emitted in time-based batches instead of building one giant in-memory list first
+3. **Batch Processing**: Data is emitted in 7 automated daily batches instead of building one giant in-memory list first
 4. **Configurable Parameters**: Change `01_data_simulation/config.yml` to simulate different scenarios
 5. **Reproducible**: Use `seed` parameter for deterministic results
 
@@ -762,7 +766,7 @@ Equipment health score + Sensor readings + Correlation
 cd 01_data_simulation
 pip install -r requirements.txt
 python sensor_simulator.py
-# Output: data/simulated_sensor_data.csv (4.4 MB, 50,400 rows)
+# Output: data/batches/*.csv plus data/simulated_sensor_data.csv (merged)
 # Verify: head -5 data/simulated_sensor_data.csv
 ```
 
@@ -885,7 +889,7 @@ Solutions:
 
 **1. Real-Time Streaming**
 ```
-Current: Batch-based CSV generation + S3 + Snowpipe
+Current: 7 daily batch CSV files + S3 + Snowpipe
 Future: Kafka → Snowflake via Connector
 Benefit: Sub-second anomaly detection
 ```
