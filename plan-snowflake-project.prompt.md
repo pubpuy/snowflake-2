@@ -289,13 +289,17 @@ class SensorSimulator:
         # If healthy (>70%): Small random noise only
         # If degrading (50-70%): Start seeing spikes
         # If critical (<30%): Constant anomalies, correlated across sensors
+
+   def generate_batch_to_csv(self):
+      # Generate time-series data in batches and append to CSV
 ```
 
 **Key Features**:
 1. **Temporal Realism**: Each equipment degrades at its own random rate
 2. **Sensor Correlation**: When ONE sensor spikes, others tend to spike too (realistic degradation)
-3. **Configurable Parameters**: Change `01_data_simulation/config.yml` to simulate different scenarios
-4. **Reproducible**: Use `seed` parameter for deterministic results
+3. **Batch Processing**: Data is emitted in time-based batches instead of building one giant in-memory list first
+4. **Configurable Parameters**: Change `01_data_simulation/config.yml` to simulate different scenarios
+5. **Reproducible**: Use `seed` parameter for deterministic results
 
 ### Why This Matters for Learning
 
@@ -881,7 +885,7 @@ Solutions:
 
 **1. Real-Time Streaming**
 ```
-Current: Batch every minute via S3 + Snowpipe
+Current: Batch-based CSV generation + S3 + Snowpipe
 Future: Kafka → Snowflake via Connector
 Benefit: Sub-second anomaly detection
 ```
