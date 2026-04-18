@@ -71,6 +71,7 @@ class SensorSimulator:
         # Parse simulation parameters
         self.duration_days = self.config['simulation']['duration_days']
         self.interval_minutes = self.config['simulation']['interval_minutes']
+        self.batch_hours = self.config['simulation'].get('batch_hours', 24)
         self.start_health = self.config['degradation']['health_score_start']
         
         # Calculate total readings
@@ -83,6 +84,7 @@ class SensorSimulator:
             f"{self.interval_minutes}-minute intervals, "
             f"{self.readings_per_equipment} readings per equipment"
         )
+        logger.info(f"Batch size: {self.batch_hours} hour(s)")
         
         # Initialize equipment with random health decline rates
         self._initialize_equipment()
@@ -238,13 +240,37 @@ class SensorSimulator:
         reading['anomaly_reason'] = ', '.join(anomaly_reasons) if anomaly_reasons else None
         
         return reading
+
+    def _generate_batch(
+        self,
+        equipment: dict,
+        batch_start: datetime,
+        batch_end: datetime,
+    ) -> list[dict]:
+        """
+        Generate readings for one equipment within a bounded time window.
+
+        This keeps the simulation time-series based while allowing the pipeline
+        to emit data in smaller batches instead of holding the entire dataset
+        in memory at once.
+        """
+        batch_readings = []
+        current_time = batch_start
+
+        while current_time < batch_end:
+            health_score = self._calculate_health_at_timestamp(equipment, current_time)
+            reading = self._generate_sensor_reading(equipment, current_time, health_score)
+            batch_readings.append(reading)
+            current_time += timedelta(minutes=self.interval_minutes)
+
+        return batch_readings
     
     def generate_data(self) -> pd.DataFrame:
         """
         Generate all simulated sensor data.
         
-        Generates readings for all equipment over the full simulation period,
-        writing progress to console every 10,000 rows.
+        Generates readings for all equipment over the full simulation period
+        in time-based batches, writing progress to console every 10,000 rows.
         
         Returns:
             DataFrame with columns: timestamp, equipment_id, equipment_type,
@@ -254,38 +280,39 @@ class SensorSimulator:
         logger.info(f"Generating sensor data...")
         logger.info(f"Total rows to generate: {len(self.equipment_list) * self.readings_per_equipment:,}")
         
-        all_readings = []
         total_rows = len(self.equipment_list) * self.readings_per_equipment
         rows_processed = 0
         
         # Simulation start time
         simulation_start = datetime(year=2026, month=3, day=24, hour=0, minute=0, second=0)
-        
-        # Generate readings for each equipment
-        for equipment in self.equipment_list:
-            logger.info(f"Simulating {equipment['id']}...")
-            
-            # Generate time series for this equipment
-            current_time = simulation_start
-            
-            for _ in range(self.readings_per_equipment):
-                # Calculate health at this point in time
-                health_score = self._calculate_health_at_timestamp(equipment, current_time)
-                
-                # Generate sensor reading
-                reading = self._generate_sensor_reading(equipment, current_time, health_score)
-                all_readings.append(reading)
-                
-                # Progress indicator
-                rows_processed += 1
-                if rows_processed % 10000 == 0:
+        simulation_end = simulation_start + timedelta(days=self.total_days)
+        batch_delta = timedelta(hours=self.batch_hours)
+        batch_frames = []
+
+        batch_start = simulation_start
+
+        while batch_start < simulation_end:
+            batch_end = min(batch_start + batch_delta, simulation_end)
+            logger.info(
+                f"Generating batch: {batch_start:%Y-%m-%d %H:%M} to {batch_end:%Y-%m-%d %H:%M}"
+            )
+
+            batch_readings = []
+
+            for equipment in self.equipment_list:
+                logger.info(f"  Simulating {equipment['id']}...")
+                equipment_batch = self._generate_batch(equipment, batch_start, batch_end)
+                batch_readings.extend(equipment_batch)
+                rows_processed += len(equipment_batch)
+
+                if rows_processed % 10000 == 0 or rows_processed == total_rows:
                     logger.info(f"  Generated {rows_processed:,} / {total_rows:,} rows")
-                
-                # Advance time
-                current_time += timedelta(minutes=self.interval_minutes)
+
+            batch_frames.append(pd.DataFrame(batch_readings))
+            batch_start = batch_end
         
         # Convert to DataFrame
-        df = pd.DataFrame(all_readings)
+        df = pd.concat(batch_frames, ignore_index=True)
         
         # Quick statistics
         logger.info(f"\nDataset complete!")
@@ -319,6 +346,52 @@ class SensorSimulator:
         
         return output_path
 
+    def generate_batch_to_csv(self, output_path: str = None) -> str:
+        """
+        Generate the dataset batch by batch and write each batch to CSV.
+
+        This is the preferred mode for the project because it mirrors a batch
+        pipeline more closely than building one huge in-memory collection first.
+        """
+        if output_path is None:
+            output_dir = self.config['simulation'].get('output_dir', 'data')
+            output_filename = self.config['simulation'].get('output_filename', 'simulated_sensor_data.csv')
+            output_path = f"{output_dir}/{output_filename}"
+
+        Path(output_path).parent.mkdir(parents=True, exist_ok=True)
+
+        simulation_start = datetime(year=2026, month=3, day=24, hour=0, minute=0, second=0)
+        simulation_end = simulation_start + timedelta(days=self.total_days)
+        batch_delta = timedelta(hours=self.batch_hours)
+
+        batch_start = simulation_start
+        first_batch = True
+        rows_processed = 0
+
+        while batch_start < simulation_end:
+            batch_end = min(batch_start + batch_delta, simulation_end)
+            logger.info(
+                f"Writing batch: {batch_start:%Y-%m-%d %H:%M} to {batch_end:%Y-%m-%d %H:%M}"
+            )
+
+            batch_rows = []
+            for equipment in self.equipment_list:
+                batch_rows.extend(self._generate_batch(equipment, batch_start, batch_end))
+
+            batch_df = pd.DataFrame(batch_rows)
+            batch_df.to_csv(output_path, mode='w' if first_batch else 'a', header=first_batch, index=False)
+
+            rows_processed += len(batch_df)
+            logger.info(f"  Wrote {len(batch_df):,} rows; total {rows_processed:,}")
+
+            first_batch = False
+            batch_start = batch_end
+
+        logger.info(f"Saved to: {output_path}")
+        logger.info(f"File size: {Path(output_path).stat().st_size / (1024*1024):.1f} MB")
+
+        return output_path
+
 
 def main():
     """
@@ -328,11 +401,11 @@ def main():
         # Initialize simulator
         simulator = SensorSimulator(config_path="config.yml")
         
-        # Generate data
-        df = simulator.generate_data()
-        
-        # Save to CSV
-        output_path = simulator.save_to_csv(df)
+        # Generate data in batches and save directly to CSV
+        output_path = simulator.generate_batch_to_csv()
+
+        # Load the generated file for preview only
+        df = pd.read_csv(output_path)
         
         # Show preview
         logger.info("\nFirst 5 rows:")
