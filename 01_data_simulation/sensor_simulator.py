@@ -32,6 +32,7 @@ import pandas as pd
 from datetime import datetime, timedelta
 from pathlib import Path
 import logging
+from typing import List, Tuple
 
 # Configure logging
 logging.basicConfig(
@@ -264,6 +265,22 @@ class SensorSimulator:
             current_time += timedelta(minutes=self.interval_minutes)
 
         return batch_readings
+
+    def _get_simulation_windows(self) -> List[Tuple[datetime, datetime]]:
+        """Build the time windows that define each batch run."""
+        simulation_start = datetime(year=2026, month=3, day=24, hour=0, minute=0, second=0)
+        simulation_end = simulation_start + timedelta(days=self.total_days)
+        batch_delta = timedelta(hours=self.batch_hours)
+
+        windows = []
+        batch_start = simulation_start
+
+        while batch_start < simulation_end:
+            batch_end = min(batch_start + batch_delta, simulation_end)
+            windows.append((batch_start, batch_end))
+            batch_start = batch_end
+
+        return windows
     
     def generate_data(self) -> pd.DataFrame:
         """
@@ -282,17 +299,9 @@ class SensorSimulator:
         
         total_rows = len(self.equipment_list) * self.readings_per_equipment
         rows_processed = 0
-        
-        # Simulation start time
-        simulation_start = datetime(year=2026, month=3, day=24, hour=0, minute=0, second=0)
-        simulation_end = simulation_start + timedelta(days=self.total_days)
-        batch_delta = timedelta(hours=self.batch_hours)
         batch_frames = []
 
-        batch_start = simulation_start
-
-        while batch_start < simulation_end:
-            batch_end = min(batch_start + batch_delta, simulation_end)
+        for batch_start, batch_end in self._get_simulation_windows():
             logger.info(
                 f"Generating batch: {batch_start:%Y-%m-%d %H:%M} to {batch_end:%Y-%m-%d %H:%M}"
             )
@@ -346,32 +355,25 @@ class SensorSimulator:
         
         return output_path
 
-    def generate_batch_to_csv(self, output_path: str = None) -> str:
+    def generate_batch_files(self, output_dir: str = None) -> list[str]:
         """
-        Generate the dataset batch by batch and write each batch to CSV.
+        Generate the dataset batch by batch and write each batch to its own CSV file.
 
         This is the preferred mode for the project because it mirrors a batch
         pipeline more closely than building one huge in-memory collection first.
         """
-        if output_path is None:
+        if output_dir is None:
             output_dir = self.config['simulation'].get('output_dir', 'data')
-            output_filename = self.config['simulation'].get('output_filename', 'simulated_sensor_data.csv')
-            output_path = f"{output_dir}/{output_filename}"
 
-        Path(output_path).parent.mkdir(parents=True, exist_ok=True)
+        batch_dir = Path(output_dir) / "batches"
+        batch_dir.mkdir(parents=True, exist_ok=True)
 
-        simulation_start = datetime(year=2026, month=3, day=24, hour=0, minute=0, second=0)
-        simulation_end = simulation_start + timedelta(days=self.total_days)
-        batch_delta = timedelta(hours=self.batch_hours)
-
-        batch_start = simulation_start
-        first_batch = True
+        batch_files = []
         rows_processed = 0
 
-        while batch_start < simulation_end:
-            batch_end = min(batch_start + batch_delta, simulation_end)
+        for batch_index, (batch_start, batch_end) in enumerate(self._get_simulation_windows(), start=1):
             logger.info(
-                f"Writing batch: {batch_start:%Y-%m-%d %H:%M} to {batch_end:%Y-%m-%d %H:%M}"
+                f"Writing batch {batch_index}: {batch_start:%Y-%m-%d %H:%M} to {batch_end:%Y-%m-%d %H:%M}"
             )
 
             batch_rows = []
@@ -379,15 +381,31 @@ class SensorSimulator:
                 batch_rows.extend(self._generate_batch(equipment, batch_start, batch_end))
 
             batch_df = pd.DataFrame(batch_rows)
-            batch_df.to_csv(output_path, mode='w' if first_batch else 'a', header=first_batch, index=False)
+            batch_filename = f"batch_{batch_index:03d}_{batch_start:%Y%m%d}_{batch_end:%Y%m%d}.csv"
+            batch_path = batch_dir / batch_filename
+            batch_df.to_csv(batch_path, index=False)
+            batch_files.append(str(batch_path))
 
             rows_processed += len(batch_df)
-            logger.info(f"  Wrote {len(batch_df):,} rows; total {rows_processed:,}")
+            logger.info(f"  Wrote {len(batch_df):,} rows to {batch_path}; total {rows_processed:,}")
 
-            first_batch = False
-            batch_start = batch_end
+        logger.info(f"Saved {len(batch_files)} batch files to: {batch_dir}")
+        return batch_files
 
-        logger.info(f"Saved to: {output_path}")
+    def generate_merged_csv(self, batch_files: List[str], output_path: str = None) -> str:
+        """Merge existing batch CSV files into one CSV file."""
+        if output_path is None:
+            output_dir = self.config['simulation'].get('output_dir', 'data')
+            output_filename = self.config['simulation'].get('output_filename', 'simulated_sensor_data.csv')
+            output_path = f"{output_dir}/{output_filename}"
+
+        batch_frames = [pd.read_csv(batch_file) for batch_file in batch_files]
+        merged_df = pd.concat(batch_frames, ignore_index=True)
+
+        Path(output_path).parent.mkdir(parents=True, exist_ok=True)
+        merged_df.to_csv(output_path, index=False)
+
+        logger.info(f"Saved merged CSV to: {output_path}")
         logger.info(f"File size: {Path(output_path).stat().st_size / (1024*1024):.1f} MB")
 
         return output_path
@@ -401,10 +419,13 @@ def main():
         # Initialize simulator
         simulator = SensorSimulator(config_path="config.yml")
         
-        # Generate data in batches and save directly to CSV
-        output_path = simulator.generate_batch_to_csv()
+        # Generate all batch files automatically
+        batch_files = simulator.generate_batch_files()
 
-        # Load the generated file for preview only
+        # Merge batch files into a single CSV for downstream use
+        output_path = simulator.generate_merged_csv(batch_files=batch_files)
+
+        # Load the merged file for preview only
         df = pd.read_csv(output_path)
         
         # Show preview
@@ -414,7 +435,8 @@ def main():
         logger.info("\nLast 5 rows:")
         logger.info(df.tail().to_string())
         
-        logger.info("\n✅ Simulation complete! CSV ready for Phase 2 (upload to S3)")
+        logger.info(f"\nGenerated {len(batch_files)} batch files and one merged CSV ready for Phase 2 (upload to S3)")
+        logger.info("✅ Simulation complete!")
         
     except Exception as e:
         logger.error(f"Error: {e}", exc_info=True)

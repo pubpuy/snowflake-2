@@ -58,7 +58,7 @@ When debugging:
 - **Data Volume**: 50,400 rows of realistic sensor data over 7 days
 - **Sensors**: 5 equipment units × 3 sensor types (temperature, vibration, power)
 - **Phases**:
-  1. Python batch simulation with statistical degradation models
+  1. Python batch simulation with statistical degradation models (7 daily batch files)
   2. S3 ingestion + Snowpipe automation
   3. dbt SQL transformation + data quality tests
   4. Analytics dashboards for maintenance insights
