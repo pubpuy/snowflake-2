@@ -106,6 +106,7 @@ simulation:
   # Duration and frequency
   duration_days: 7              # Simulate 1 week of factory operation
   interval_minutes: 1           # Reading every 60 seconds (realistic IoT frequency)
+  batch_hours: 24               # Write output in 1-day batches
   
   # Count of each equipment (you can scale this up)
   num_equipments:
