@@ -1,7 +1,6 @@
 ---
 description: "Use when working on the Snowflake IoT data pipeline project—learn from documentation, explain architecture concepts, help implement code, run setup commands, or debug issues."
 tools: [read, edit, search, execute, todo]
-model: Claude Haiku 4.5 (copilot)
 user-invocable: true
 argument-hint: "Ask about project concepts, request code help, explain architecture, or run setup tasks"
 ---
