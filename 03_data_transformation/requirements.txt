@@ -1,0 +1,3 @@
+# dbt and dependencies for Snowflake transformation
+dbt-snowflake==1.5.0
+dbt-core==1.5.0
