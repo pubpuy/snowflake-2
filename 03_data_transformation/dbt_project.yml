@@ -1,0 +1,33 @@
+# dbt Project Configuration for Smart Factory Pipeline
+
+name: 'smart_factory_transformation'
+version: '1.0.0'
+config-version: 2
+
+profile: 'smart_factory'
+
+model-paths: ["models"]
+analysis-paths: ["analysis"]
+test-paths: ["tests"]
+data-paths: ["seeds"]
+macro-paths: ["macros"]
+snapshot-paths: ["snapshots"]
+target-path: "target"
+clean-targets:
+  - "target"
+  - "dbt_packages"
+
+models:
+  smart_factory_transformation:
+    staging:
+      +materialized: view
+      +tags: ["staging"]
+    marts:
+      +materialized: table
+      +tags: ["marts"]
+
+vars:
+  start_date: '2026-03-24'
+  end_date: '2026-03-31'
+
+require-dbt-version: [">=1.0.0", "<2.0.0"]
