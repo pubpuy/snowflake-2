@@ -1,8 +1,9 @@
 {
-	"name": "Data Engineering Lab (AWS CLI)",
-	"image": "mcr.microsoft.com/devcontainers/python:3.11",
-	"features": {
-		"ghcr.io/devcontainers/features/aws-cli:1": {}
-	},
-	"postCreateCommand": "pip install -r 01_data_simulation/requirements.txt"
+    "name": "Data Engineering Lab (AWS CLI)",
+    "image": "mcr.microsoft.com/devcontainers/python:3.11",
+    "features": {
+        "ghcr.io/devcontainers/features/aws-cli:1": {},
+        "ghcr.io/devcontainers/features/node:1": {}
+    },
+    "postCreateCommand": "pip install -r 01_data_simulation/requirements.txt && npm install -g @google/gemini-cli"
 }

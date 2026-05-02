@@ -54,7 +54,7 @@ CREATE OR REPLACE STORAGE INTEGRATION s3_integration
   TYPE = EXTERNAL_STAGE
   STORAGE_PROVIDER = 'S3'
   ENABLED = TRUE
-  STORAGE_AWS_ROLE_ARN = 'arn:aws:iam::AWS_ACCOUNT_ID:role/SnowflakeS3Role'
+  STORAGE_AWS_ROLE_ARN = 'arn:aws:iam::379195789461:role/SnowflakeS3Role'
   STORAGE_ALLOWED_LOCATIONS = ('s3://factory-datalake-1776788959/sensor_raw/')
   COMMENT = 'Integration to read sensor data from S3';
 
@@ -90,22 +90,22 @@ CREATE OR REPLACE STAGE sensor_stage
 
 CREATE OR REPLACE PIPE sensor_pipe
   AUTO_INGEST = TRUE
+  COMMENT = 'Automatically ingest sensor data when CSV files arrive in S3'
   AS
   COPY INTO SMART_FACTORY.RAW.RAW_SENSOR_DATA (
     TIMESTAMP,
     EQUIPMENT_ID,
     EQUIPMENT_TYPE,
-    HEALTH_SCORE,
     TEMPERATURE,
     VIBRATION,
     POWER_CONSUMPTION,
+    HEALTH_SCORE,
     IS_ANOMALY,
     ANOMALY_REASON
   )
   FROM @sensor_stage
   FILE_FORMAT = (TYPE = 'CSV', SKIP_HEADER = 1)
-  ON_ERROR = 'SKIP_FILE'
-  COMMENT = 'Automatically ingest sensor data when CSV files arrive in S3';
+  ON_ERROR = 'SKIP_FILE';
 
 
 -- ============================================================================
