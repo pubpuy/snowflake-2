@@ -54,7 +54,7 @@ CREATE OR REPLACE STORAGE INTEGRATION s3_integration
   TYPE = EXTERNAL_STAGE
   STORAGE_PROVIDER = 'S3'
   ENABLED = TRUE
-  STORAGE_AWS_ROLE_ARN = 'arn:aws:iam::379195789461:role/SnowflakeS3Role'
+  STORAGE_AWS_ROLE_ARN = 'arn:aws:iam::415699578071:role/SnowflakeS3Role'
   STORAGE_ALLOWED_LOCATIONS = ('s3://factory-datalake-1776788959/sensor_raw/')
   COMMENT = 'Integration to read sensor data from S3';
 
@@ -70,7 +70,7 @@ CREATE OR REPLACE STORAGE INTEGRATION s3_integration
 
 CREATE OR REPLACE STAGE sensor_stage
   URL = 's3://factory-datalake-1776788959/sensor_raw/'
-  STORAGE_INTEGRATION = s3_integration
+  CREDENTIALS = (AWS_KEY_ID = $AWS_KEY_ID AWS_SECRET_KEY = $AWS_SECRET_KEY)
   FILE_FORMAT = (
     TYPE = 'CSV',
     SKIP_HEADER = 1,
@@ -115,8 +115,15 @@ CREATE OR REPLACE PIPE sensor_pipe
 SELECT COUNT(*) as row_count FROM SMART_FACTORY.RAW.RAW_SENSOR_DATA;
 
 -- Check Snowpipe status (run after files are uploaded):
-SELECT * FROM TABLE(INFORMATION_SCHEMA.PIPE_EXECUTION_STEP('sensor_pipe')) 
-ORDER BY PIPE_EXECUTION_STATE_ID DESC LIMIT 10;
+SELECT SYSTEM$PIPE_STATUS('sensor_pipe');
+
+SELECT *
+FROM TABLE(INFORMATION_SCHEMA.PIPE_USAGE_HISTORY(
+  PIPE_NAME => 'SENSOR_PIPE',
+  DATE_RANGE_START => DATEADD('hour', -24, CURRENT_TIMESTAMP()),
+  DATE_RANGE_END => CURRENT_TIMESTAMP()
+))
+ORDER BY START_TIME DESC;
 
 -- List files in S3 stage (verify connectivity):
 LIST @sensor_stage;
