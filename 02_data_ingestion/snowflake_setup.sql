@@ -42,35 +42,23 @@ CREATE OR REPLACE TABLE SMART_FACTORY.RAW.RAW_SENSOR_DATA (
 COMMENT = 'Raw sensor readings (50,400 rows over 7 days from 5 equipment units)';
 
 -- ============================================================================
--- STEP 3: Create S3 Storage Integration
+-- STEP 3: Create S3 Storage Integration (REMOVED)
 -- ============================================================================
--- This allows Snowflake to read from your S3 bucket
---
--- NOTE: Replace with YOUR bucket name!
--- Change: 'arn:aws:s3:::factory-datalake-1776788959'
---         to your actual bucket ARN
+-- Using direct AWS credentials instead
 
-CREATE OR REPLACE STORAGE INTEGRATION s3_integration
-  TYPE = EXTERNAL_STAGE
-  STORAGE_PROVIDER = 'S3'
-  ENABLED = TRUE
-  STORAGE_AWS_ROLE_ARN = 'arn:aws:iam::415699578071:role/SnowflakeS3Role'
-  STORAGE_ALLOWED_LOCATIONS = ('s3://factory-datalake-1776788959/sensor_raw/')
-  COMMENT = 'Integration to read sensor data from S3';
 
--- After creating the integration, run this to get the IAM policy:
--- DESC INTEGRATION s3_integration;
--- Then create the IAM role in AWS and attach the policy
-
+-- ============================================================================
+-- STEP 4: Create External Stage with AWS Credentials
+-- ============================================================================
+-- Points to the S3 location where batch CSV files are stored
 
 -- ============================================================================
 -- STEP 4: Create External Stage
 -- ============================================================================
--- Points to the S3 location where batch CSV files are stored
+-- AWS credentials stored separately in Snowflake secret (or provided via Python)
 
 CREATE OR REPLACE STAGE sensor_stage
   URL = 's3://factory-datalake-1776788959/sensor_raw/'
-  CREDENTIALS = (AWS_KEY_ID = $AWS_KEY_ID AWS_SECRET_KEY = $AWS_SECRET_KEY)
   FILE_FORMAT = (
     TYPE = 'CSV',
     SKIP_HEADER = 1,
