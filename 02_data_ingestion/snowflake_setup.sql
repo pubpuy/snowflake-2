@@ -51,23 +51,23 @@ COMMENT = 'Raw sensor readings (50,400 rows over 7 days from 5 equipment units)'
 -- STEP 4: Create External Stage with AWS Credentials
 -- ============================================================================
 -- Points to the S3 location where batch CSV files are stored
-
--- ============================================================================
--- STEP 4: Create External Stage
--- ============================================================================
--- AWS credentials stored separately in Snowflake secret (or provided via Python)
+-- Region: ap-southeast-1 (Singapore) - matches actual bucket location
 
 CREATE OR REPLACE STAGE sensor_stage
   URL = 's3://factory-datalake-1776788959/sensor_raw/'
+  CREDENTIALS = (
+    AWS_KEY_ID     = '<YOUR_AWS_ACCESS_KEY_ID>',
+    AWS_SECRET_KEY = '<YOUR_AWS_SECRET_ACCESS_KEY>'
+  )
   FILE_FORMAT = (
-    TYPE = 'CSV',
-    SKIP_HEADER = 1,
+    TYPE            = 'CSV',
+    SKIP_HEADER     = 1,
     FIELD_DELIMITER = ',',
     RECORD_DELIMITER = '\n',
     SKIP_BLANK_LINES = TRUE,
-    NULL_IF = ('NULL', 'null', '')
+    NULL_IF          = ('NULL', 'null', '')
   )
-  COMMENT = 'Stage for sensor data CSV files from S3';
+  COMMENT = 'Stage for sensor data CSV files from S3 (ap-southeast-1)';
 
 
 -- ============================================================================
