@@ -1,0 +1,21 @@
+version: 2
+
+models:
+  - name: stg_sensor_raw
+    description: "Cleaned and deduplicated sensor data from RAW layer"
+    columns:
+      - name: sensor_id
+        description: "Surrogate key (TIMESTAMP + EQUIPMENT_ID)"
+        tests:
+          - unique
+          - not_null
+      - name: event_timestamp
+        tests:
+          - not_null
+      - name: EQUIPMENT_ID
+        tests:
+          - not_null
+      - name: health_score
+        description: "Equipment health score (0-100)"
+      - name: is_out_of_range
+        description: "TRUE if any sensor value is physically impossible"

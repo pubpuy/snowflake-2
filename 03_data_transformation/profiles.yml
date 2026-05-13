@@ -1,27 +1,28 @@
 # dbt Profiles Configuration for Snowflake
-# IMPORTANT: Update with your actual Snowflake credentials before running dbt commands
 
 smart_factory:
   target: dev
   outputs:
     dev:
       type: snowflake
-      account: <your-snowflake-account-id>
-      user: <your-snowflake-user>
-      password: <your-snowflake-password>
-      role: TRANSFORMER
+      account: OOFCXBJ-XVB93258
+      user: PUBPUY
+      password: "0254646XasdPubpuy*"
+      role: ACCOUNTADMIN
       database: SMART_FACTORY
       schema: STAGING
+      warehouse: COMPUTE_WH
       threads: 4
       client_session_keep_alive: False
-      
+
     prod:
       type: snowflake
-      account: <your-snowflake-account-id>
-      user: <your-snowflake-user>
-      password: <your-snowflake-password>
-      role: TRANSFORMER
+      account: OOFCXBJ-XVB93258
+      user: PUBPUY
+      password: "0254646XasdPubpuy*"
+      role: ACCOUNTADMIN
       database: SMART_FACTORY
       schema: MARTS
+      warehouse: COMPUTE_WH
       threads: 8
       client_session_keep_alive: False

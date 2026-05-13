@@ -1,0 +1,32 @@
+version: 2
+
+sources:
+  - name: raw
+    database: SMART_FACTORY
+    schema: RAW
+    tables:
+      - name: RAW_SENSOR_DATA
+        description: "Raw IoT sensor readings ingested via Snowpipe from S3"
+        columns:
+          - name: TIMESTAMP
+            description: "Time of sensor reading"
+            tests:
+              - not_null
+          - name: EQUIPMENT_ID
+            description: "Unique equipment identifier"
+            tests:
+              - not_null
+          - name: EQUIPMENT_TYPE
+            description: "Type of equipment (CNC, Robot, Conveyor, etc.)"
+          - name: HEALTH_SCORE
+            description: "Equipment health score (0-100)"
+          - name: TEMPERATURE
+            description: "Temperature in Celsius"
+          - name: VIBRATION
+            description: "Vibration in mm/s"
+          - name: POWER_CONSUMPTION
+            description: "Power consumption in kW"
+          - name: IS_ANOMALY
+            description: "1 if anomaly detected, 0 otherwise"
+          - name: ANOMALY_REASON
+            description: "Description of anomaly if detected"
