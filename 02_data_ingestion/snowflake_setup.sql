@@ -42,27 +42,30 @@ CREATE OR REPLACE TABLE SMART_FACTORY.RAW.RAW_SENSOR_DATA (
 COMMENT = 'Raw sensor readings (50,400 rows over 7 days from 5 equipment units)';
 
 -- ============================================================================
--- STEP 3: Create S3 Storage Integration (REMOVED)
+-- STEP 3: Create S3 Storage Integration
 -- ============================================================================
--- Using direct AWS credentials instead
+-- Connect Snowflake to AWS S3 using an IAM Role
 
+CREATE STORAGE INTEGRATION IF NOT EXISTS s3_factory_int
+  TYPE                      = EXTERNAL_STAGE
+  STORAGE_PROVIDER          = 'S3'
+  STORAGE_AWS_ROLE_ARN      = 'arn:aws:iam::415699578071:role/Snowflake_S3_Integration_Role'
+  ENABLED                   = TRUE
+  STORAGE_ALLOWED_LOCATIONS = ('s3://factory-datalake-1776788959/sensor_raw/');
 
 -- ============================================================================
--- STEP 4: Create External Stage with AWS Credentials
+-- STEP 4: Create External Stage using Storage Integration
 -- ============================================================================
 -- Points to the S3 location where batch CSV files are stored
 -- Region: ap-southeast-1 (Singapore) - matches actual bucket location
 
 CREATE OR REPLACE STAGE sensor_stage
   URL = 's3://factory-datalake-1776788959/sensor_raw/'
-  CREDENTIALS = (
-    AWS_KEY_ID     = '<YOUR_AWS_ACCESS_KEY_ID>',
-    AWS_SECRET_KEY = '<YOUR_AWS_SECRET_ACCESS_KEY>'
-  )
+  STORAGE_INTEGRATION = s3_factory_int
   FILE_FORMAT = (
-    TYPE            = 'CSV',
-    SKIP_HEADER     = 1,
-    FIELD_DELIMITER = ',',
+    TYPE             = 'CSV',       
+    SKIP_HEADER      = 1,          
+    FIELD_DELIMITER  = ',',
     RECORD_DELIMITER = '\n',
     SKIP_BLANK_LINES = TRUE,
     NULL_IF          = ('NULL', 'null', '')
