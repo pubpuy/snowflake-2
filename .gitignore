@@ -27,10 +27,15 @@ __pycache__/
 *.egg-info/
 dist/
 build/
+.venv/
 
 # dbt
 target/
 dbt_packages/
+profiles.yml
+.user.yml
+*.user.yml
 
 # Logs
 *.log
+
