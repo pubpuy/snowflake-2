@@ -3,18 +3,38 @@ reload_snowflake.py
 -------------------
 Truncate RAW_SENSOR_DATA and reload fresh data from S3 Stage into Snowflake.
 Run this after re-uploading new batch CSV files to S3.
+
+Setup:
+  Update SNOWFLAKE_PASSWORD in 02_data_ingestion/phase2_config.env
+  (phase2_config.env is in .gitignore — safe to store credentials there)
 """
 
 import snowflake.connector
 import os
 
-# ── Credentials ───────────────────────────────────────────────────────────────
-SNOWFLAKE_ACCOUNT   = "OOFCXBJ-XVB93258"
-SNOWFLAKE_USER      = "PUBPUY"
-SNOWFLAKE_PASSWORD  = "0254646XasdPubpuy**"
-SNOWFLAKE_DATABASE  = "SMART_FACTORY"
-SNOWFLAKE_SCHEMA    = "RAW"
-SNOWFLAKE_WAREHOUSE = "COMPUTE_WH"
+# ── Load credentials from phase2_config.env ───────────────────────────────────
+def load_env(filepath: str):
+    """Load key=value pairs from a .env file into os.environ."""
+    if not os.path.exists(filepath):
+        raise FileNotFoundError(f"Config file not found: {filepath}")
+    with open(filepath) as f:
+        for line in f:
+            line = line.strip()
+            if line and not line.startswith("#") and "=" in line:
+                key, _, value = line.partition("=")
+                os.environ.setdefault(key.strip(), value.strip())
+
+# Load from phase2_config.env (relative to this script)
+_env_path = os.path.join(os.path.dirname(__file__), "phase2_config.env")
+load_env(_env_path)
+
+# ── Credentials (read from env) ────────────────────────────────────────────────
+SNOWFLAKE_ACCOUNT   = os.environ["SNOWFLAKE_ACCOUNT_ID"]
+SNOWFLAKE_USER      = os.environ["SNOWFLAKE_USER"]
+SNOWFLAKE_PASSWORD  = os.environ["SNOWFLAKE_PASSWORD"]   # ← แก้ใน phase2_config.env
+SNOWFLAKE_DATABASE  = os.environ.get("SNOWFLAKE_DATABASE", "SMART_FACTORY")
+SNOWFLAKE_SCHEMA    = os.environ.get("SNOWFLAKE_SCHEMA", "RAW")
+SNOWFLAKE_WAREHOUSE = os.environ.get("SNOWFLAKE_WAREHOUSE", "COMPUTE_WH")
 SNOWFLAKE_STAGE     = "sensor_stage"
 SNOWFLAKE_TABLE     = "RAW_SENSOR_DATA"
 
