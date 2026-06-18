@@ -139,4 +139,4 @@ dbt run && dbt test
 
 ---
 
-*Smart Factory IoT Pipeline · pubpuy · 2025*
+*Smart Factory IoT Pipeline · pubpuy · 2026*
