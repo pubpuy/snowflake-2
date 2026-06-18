@@ -1,5 +1,3 @@
-<img width="1424" height="802" alt="image" src="https://github.com/user-attachments/assets/96259cfa-a5c5-4749-8509-921bc9267db4" /># 🏭 Smart Factory — IoT & Predictive Maintenance Pipeline
-
 > **End-to-end data engineering pipeline** that simulates factory sensor data, streams it into Snowflake, transforms it with dbt, and surfaces insights via Power BI dashboards.
 
 ---
