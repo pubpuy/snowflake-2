@@ -7,14 +7,28 @@
 ## 🏗️ Architecture
 
 ```mermaid
-graph LR
-    A[🖥️ sensor_simulator.py\nPhase 1] -->|CSV batches| B[☁️ AWS S3\nfactory-datalake]
-    B -->|S3 Event| C[📬 AWS SQS]
-    C -->|Auto-Ingest| D[❄️ Snowpipe\nsensor_pipe]
-    D -->|RAW load| E[(SMART_FACTORY\n.RAW\n.RAW_SENSOR_DATA)]
-    E -->|stg_sensor_raw| F[🔧 dbt Core\nPhase 3]
-    F -->|4 marts| G[📊 Power BI\nPhase 4]
+graph TD
+    subgraph P1["① Simulate"]
+        A[sensor_simulator.py]
+    end
+    subgraph P2["② Ingest"]
+        B[AWS S3] --> C[AWS SQS] --> D[Snowpipe]
+    end
+    subgraph P3["③ Transform — dbt"]
+        E[stg_sensor_raw] --> F[fact_energy_consumption]
+        E --> G[alert_predictive_maintenance]
+        E --> H[fact_oee]
+        E --> I[fact_forecasting]
+    end
+    subgraph P4["④ Visualize"]
+        J[Power BI Dashboards]
+    end
+
+    A -->|CSV batches| B
+    D -->|RAW_SENSOR_DATA| E
+    F & G & H & I --> J
 ```
+
 
 | Phase | Tool | What it does |
 |-------|------|--------------|
