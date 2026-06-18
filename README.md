@@ -1,4 +1,4 @@
-# 🏭 Smart Factory — IoT & Predictive Maintenance Pipeline
+<img width="1424" height="802" alt="image" src="https://github.com/user-attachments/assets/96259cfa-a5c5-4749-8509-921bc9267db4" /># 🏭 Smart Factory — IoT & Predictive Maintenance Pipeline
 
 > **End-to-end data engineering pipeline** that simulates factory sensor data, streams it into Snowflake, transforms it with dbt, and surfaces insights via Power BI dashboards.
 
@@ -73,14 +73,14 @@ snowflake-2/
 
 ### Page 1 — Energy & Operations
 
-<!-- 📸 วางภาพ screenshot ของหน้า Energy & Operations ที่นี่ -->
+<img width="1424" height="802" alt="image" src="https://github.com/user-attachments/assets/53ad37db-6b6e-4ac6-949d-3fce1c536d4a" />
 > _Screenshot placeholder — Energy & Operations dashboard_
 
 ---
 
 ### Page 3 — OEE & Forecasting
 
-<!-- 📸 วางภาพ screenshot ของหน้า OEE & Forecasting ที่นี่ -->
+<img width="1423" height="801" alt="image" src="https://github.com/user-attachments/assets/6ae8e4f1-137e-4c92-8768-548c61d3a441" />
 > _Screenshot placeholder — OEE & Forecasting dashboard_
 
 ---
